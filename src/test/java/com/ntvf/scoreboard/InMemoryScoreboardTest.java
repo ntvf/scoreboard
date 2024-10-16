@@ -99,10 +99,10 @@ class InMemoryScoreboardTest {
     }
 
     private String renderSummaryState(Summary summary) {
-
         return summary.getMatches()
                 .stream()
-                .map(it -> "%s:%s-%s:%s".formatted(it.getHomeTeamName(), it.getHomeTeamScore(), it.getAwayTeamScore(), it.getAwayTeamName()))
-                .collect(Collectors.joining("\n"));
+                .map(it -> "%s %s - %s %s".formatted(it.getHomeTeamName(), it.getHomeTeamScore(),
+                        it.getAwayTeamName(), it.getAwayTeamScore()))
+                .collect(Collectors.joining("\n")) + "\n";
     }
 }
