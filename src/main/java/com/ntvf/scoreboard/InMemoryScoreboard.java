@@ -22,6 +22,9 @@ public class InMemoryScoreboard implements Scoreboard {
 
     @Override
     public void updateScore(String homeTeam, int homeTeamScore, String awayTeam, int awayTeamScore) {
+        if(homeTeamScore < 0 || awayTeamScore < 0) {
+            throw new IllegalArgumentException("Scores cannot be negative");
+        }
         map.put(homeTeam + awayTeam, Match.builder()
                 .homeTeamName(homeTeam)
                 .homeTeamScore(homeTeamScore)

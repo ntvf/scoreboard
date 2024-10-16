@@ -1,13 +1,14 @@
 package com.ntvf.scoreboard;
 
 import com.ntvf.scoreboard.Scoreboard.Summary;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryScoreboardTest {
@@ -94,8 +95,71 @@ class InMemoryScoreboardTest {
                 """, summary);
     }
 
+    @Test
+    @DisplayName("Handle invalid score updates with negative values")
+    void testUpdateScoreWithNegativeValues() {
+        // GIVEN a match between Mexico and Canada
+        scoreboard.startMatch("Mexico", "Canada");
+
+        // WHEN we attempt to update the score with negative values
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.updateScore("Mexico", -1, "Canada", 5);
+        });
+
+        // THEN an error should be thrown and no update should occur
+        assertEquals("Scores cannot be negative", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Handle updating score of a non-existent match")
+    void testUpdateNonExistentMatch() {
+        // GIVEN no matches are currently in progress
+        assertTrue(scoreboard.getSummary().isEmpty());
+
+        // WHEN we attempt to update the score of a non-existent match
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.updateScore("Mexico", 1, "Canada", 1);
+        });
+
+        // THEN an error should be thrown indicating the match does not exist
+        assertEquals("Match not found", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Handle starting a match with invalid team names")
+    void testStartMatchWithInvalidTeamNames() {
+        // WHEN we try to start a match with null or empty team names
+        IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.startMatch(null, "Canada");
+        });
+
+        IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.startMatch("Mexico", "");
+        });
+
+        // THEN appropriate errors should be thrown
+        assertEquals("Team names cannot be null or empty", exception1.getMessage());
+        assertEquals("Team names cannot be null or empty", exception2.getMessage());
+    }
+
+    @Test
+    @DisplayName("Handle finishing a match that does not exist")
+    void testFinishNonExistentMatch() {
+        // GIVEN no matches are currently in progress
+        assertTrue(scoreboard.getSummary().isEmpty());
+
+        // WHEN we attempt to finish a match that hasn't been started
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.finishMatch("Mexico", "Canada");
+        });
+
+        // THEN an error should be thrown indicating the match does not exist
+        assertEquals("Match not found", exception.getMessage());
+    }
+
+
     private void assertState(String expectedState, Summary summary) {
-        Assertions.assertEquals(expectedState, renderSummaryState(summary));
+        assertEquals(expectedState, renderSummaryState(summary));
     }
 
     private String renderSummaryState(Summary summary) {
