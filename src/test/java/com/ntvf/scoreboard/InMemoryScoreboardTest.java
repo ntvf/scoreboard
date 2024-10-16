@@ -114,12 +114,18 @@ class InMemoryScoreboardTest {
         scoreboard.startMatch("Mexico", "Canada");
 
         // WHEN we attempt to update the score with negative values
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () -> {
             scoreboard.updateScore("Mexico", -1, "Canada", 5);
         });
 
+        IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.updateScore("Mexico", 1, "Canada", -5);
+        });
+
         // THEN an error should be thrown and no update should occur
-        assertEquals("Scores cannot be negative", exception.getMessage());
+        assertEquals("Scores cannot be negative", exception1.getMessage());
+        assertEquals("Scores cannot be negative", exception2.getMessage());
+
     }
 
     @Test
