@@ -24,8 +24,8 @@ public class InMemoryScoreboard implements Scoreboard {
                 .awayTeamName(awayTeam)
                 .createdAt(Instant.now())
                 .build());
-        log.debug("Started match {} - {}", homeTeam, awayTeam);
 
+        log.debug("Started match {} - {}", homeTeam, awayTeam);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class InMemoryScoreboard implements Scoreboard {
 
         String key = constructKey(homeTeam, awayTeam);
 
-        validate("Match not found", () -> !map.containsKey(key));
+        validateForUpdate(homeTeam, awayTeam, key);
 
         map.put(key, map.get(key).toBuilder()
                 .homeTeamScore(homeTeamScore)
@@ -48,12 +48,13 @@ public class InMemoryScoreboard implements Scoreboard {
     public void finishMatch(String homeTeam, String awayTeam) {
         String key = constructKey(homeTeam, awayTeam);
 
-        validate("Match not found", () -> !map.containsKey(key));
+        validateForUpdate(homeTeam, awayTeam, key);
 
         map.remove(key);
 
         log.debug("Finished match {} - {}", homeTeam, awayTeam);
     }
+
 
     @Override
     public Summary getSummary() {
@@ -68,12 +69,21 @@ public class InMemoryScoreboard implements Scoreboard {
     }
 
     private void validateMatchStart(String homeTeam, String awayTeam) {
-        validate("Team names cannot be null or empty", () ->
-                homeTeam == null || homeTeam.isBlank() || awayTeam == null || awayTeam.isBlank()
-        );
+        validateTeamNames(homeTeam, awayTeam);
 
         validate("Match already started", () ->
                 map.containsKey(constructKey(homeTeam, awayTeam)) || map.containsKey(constructKey(awayTeam, homeTeam))
+        );
+    }
+
+    private void validateForUpdate(String homeTeam, String awayTeam, String key) {
+        validateTeamNames(homeTeam, awayTeam);
+        validate("Match not found", () -> !map.containsKey(key));
+    }
+
+    private void validateTeamNames(String homeTeam, String awayTeam) {
+        validate("Team names cannot be null or empty", () ->
+                homeTeam == null || homeTeam.isBlank() || awayTeam == null || awayTeam.isBlank()
         );
     }
 
@@ -87,10 +97,15 @@ public class InMemoryScoreboard implements Scoreboard {
     @Data
     @Builder(toBuilder = true)
     private static class Match implements Scoreboard.Match {
+
         private final String homeTeamName;
+
         private final int homeTeamScore;
+
         private final String awayTeamName;
+
         private final int awayTeamScore;
+
         private final Instant createdAt;
     }
 }

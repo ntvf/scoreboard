@@ -15,7 +15,7 @@ public interface Scoreboard {
     Summary getSummary();
 
     interface Summary {
-        List< ? extends Match> getMatches();
+        List<Match> getMatches();
 
         default boolean isEmpty() {
             return ofNullable(getMatches())
