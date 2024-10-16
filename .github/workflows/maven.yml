@@ -34,3 +34,8 @@ jobs:
       with:
         name: unit-tests-jacoco
         path: target/jacoco.exec
+    - name: Generate JaCoCo Badge
+      uses: cicirello/jacoco-badge-generator@v2
+      with:
+        generate-branches-badge: true
+        jacoco-csv-file: target/site/jacoco/jacoco.csv
