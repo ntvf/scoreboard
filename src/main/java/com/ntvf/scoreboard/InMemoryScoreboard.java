@@ -2,41 +2,57 @@ package com.ntvf.scoreboard;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class InMemoryScoreboard implements Scoreboard {
-    private final ConcurrentHashMap<String, Match> map = new ConcurrentHashMap<>();
+    private final Map<String, Match> map = new ConcurrentHashMap<>();
 
     @Override
     public void startMatch(String homeTeam, String awayTeam) {
-        map.put(homeTeam + awayTeam, Match.builder()
+        validateMatchStart(homeTeam, awayTeam);
+
+        map.put(constructKey(homeTeam, awayTeam), Match.builder()
                 .homeTeamName(homeTeam)
                 .awayTeamName(awayTeam)
                 .createdAt(Instant.now())
                 .build());
+        log.debug("Started match {} - {}", homeTeam, awayTeam);
+
     }
 
     @Override
     public void updateScore(String homeTeam, int homeTeamScore, String awayTeam, int awayTeamScore) {
-        if(homeTeamScore < 0 || awayTeamScore < 0) {
-            throw new IllegalArgumentException("Scores cannot be negative");
-        }
-        map.put(homeTeam + awayTeam, Match.builder()
-                .homeTeamName(homeTeam)
+        validate("Scores cannot be negative", () -> homeTeamScore < 0 || awayTeamScore < 0);
+
+        String key = constructKey(homeTeam, awayTeam);
+
+        validate("Match not found", () -> !map.containsKey(key));
+
+        map.put(key, map.get(key).toBuilder()
                 .homeTeamScore(homeTeamScore)
-                .awayTeamName(awayTeam)
                 .awayTeamScore(awayTeamScore)
-                .createdAt(map.get(homeTeam + awayTeam).getCreatedAt())
                 .build());
+
+        log.debug("Updated match {}:{} - {}:{}", homeTeam, homeTeamScore, awayTeam, awayTeamScore);
     }
 
     @Override
     public void finishMatch(String homeTeam, String awayTeam) {
-        map.remove(homeTeam + awayTeam);
+        String key = constructKey(homeTeam, awayTeam);
+
+        validate("Match not found", () -> !map.containsKey(key));
+
+        map.remove(key);
+
+        log.debug("Finished match {} - {}", homeTeam, awayTeam);
     }
 
     @Override
@@ -47,8 +63,29 @@ public class InMemoryScoreboard implements Scoreboard {
                 .collect(Collectors.toList());
     }
 
+    private String constructKey(String homeTeam, String awayTeam) {
+        return (homeTeam + awayTeam).toLowerCase();
+    }
+
+    private void validateMatchStart(String homeTeam, String awayTeam) {
+        validate("Team names cannot be null or empty", () ->
+                homeTeam == null || homeTeam.isBlank() || awayTeam == null || awayTeam.isBlank()
+        );
+
+        validate("Match already started", () ->
+                map.containsKey(constructKey(homeTeam, awayTeam)) || map.containsKey(constructKey(awayTeam, homeTeam))
+        );
+    }
+
+    private void validate(String message, Supplier<Boolean> condition) {
+        if (condition.get()) {
+            log.warn("Validation error: {}", message);
+            throw new IllegalArgumentException(message);
+        }
+    }
+
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     private static class Match implements Scoreboard.Match {
         private final String homeTeamName;
         private final int homeTeamScore;

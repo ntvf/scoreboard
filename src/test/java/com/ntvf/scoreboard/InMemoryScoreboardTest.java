@@ -97,7 +97,7 @@ class InMemoryScoreboardTest {
 
     @Test
     @DisplayName("Handle invalid score updates with negative values")
-    void testUpdateScoreWithNegativeValues() {
+    void updateScoreWithNegativeValues() {
         // GIVEN a match between Mexico and Canada
         scoreboard.startMatch("Mexico", "Canada");
 
@@ -112,7 +112,7 @@ class InMemoryScoreboardTest {
 
     @Test
     @DisplayName("Handle updating score of a non-existent match")
-    void testUpdateNonExistentMatch() {
+    void updateNonExistentMatch() {
         // GIVEN no matches are currently in progress
         assertTrue(scoreboard.getSummary().isEmpty());
 
@@ -127,7 +127,7 @@ class InMemoryScoreboardTest {
 
     @Test
     @DisplayName("Handle starting a match with invalid team names")
-    void testStartMatchWithInvalidTeamNames() {
+    void startMatchWithInvalidTeamNames() {
         // WHEN we try to start a match with null or empty team names
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () -> {
             scoreboard.startMatch(null, "Canada");
@@ -143,8 +143,27 @@ class InMemoryScoreboardTest {
     }
 
     @Test
+    @DisplayName("Update the score of an ongoing match")
+    void startMatchWithDuplicates() {
+        // GIVEN a match between Spain and Brazil
+        scoreboard.startMatch("Spain", "Brazil");
+
+        // WHEN we want to start a match of duplicates
+        IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.startMatch("Brazil", "Spain");
+        });
+        IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () -> {
+            scoreboard.startMatch("Spain", "Brazil");
+        });
+
+        // THEN errors should be thrown
+        assertEquals("Match already started", exception1.getMessage());
+        assertEquals("Match already started", exception2.getMessage());
+    }
+
+    @Test
     @DisplayName("Handle finishing a match that does not exist")
-    void testFinishNonExistentMatch() {
+    void finishNonExistentMatch() {
         // GIVEN no matches are currently in progress
         assertTrue(scoreboard.getSummary().isEmpty());
 
