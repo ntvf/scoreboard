@@ -1,5 +1,5 @@
 # Live Football World Cup Scoreboard Library
-
+![Coverage](.github/badges/jacoco.svg)
 ## Description
 This is a simple in-memory, thread-safe library to manage live football scores for ongoing matches. It provides functionality to:
 1. Start a new match.
