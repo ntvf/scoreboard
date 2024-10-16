@@ -1,17 +1,29 @@
 package com.ntvf.scoreboard;
 
 import com.ntvf.scoreboard.Scoreboard.Summary;
+import lombok.SneakyThrows;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryScoreboardTest {
+    private final ExecutorService executorService = Executors.newFixedThreadPool(
+            5
+    );
+
     private Scoreboard scoreboard;
 
     @BeforeEach
@@ -176,6 +188,99 @@ class InMemoryScoreboardTest {
         assertEquals("Match not found", exception.getMessage());
     }
 
+    @Test
+    @DisplayName("Test concurrent start, update, and finish of matches")
+    void testConcurrentOperations() throws InterruptedException {
+        // GIVEN an ExecutorService to run concurrent operations
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+
+        // WHEN starting, updating, and finishing multiple matches concurrently
+        val tasks = List.of(
+                (Runnable) () -> scoreboard.startMatch("Mexico", "Canada"),
+                () -> scoreboard.startMatch("Spain", "Brazil"),
+                () -> scoreboard.startMatch("Germany", "France"),
+                () -> scoreboard.startMatch("Argentina", "Australia"),
+                () -> scoreboard.updateScore("Mexico", 1, "Canada", 0),
+                () -> scoreboard.updateScore("Spain", 2, "Brazil", 1),
+                () -> scoreboard.updateScore("Germany", 1, "France", 1),
+                () -> scoreboard.updateScore("Argentina", 3, "Australia", 0),
+                () -> scoreboard.finishMatch("Mexico", "Canada"),
+                () -> scoreboard.finishMatch("Spain", "Brazil")
+        );
+        executeConcurrently(tasks);
+
+        // Wait for all tasks to finish
+        executorService.shutdown();
+        assertTrue(executorService.awaitTermination(5, TimeUnit.SECONDS));
+
+        // THEN the scoreboard should reflect correct and consistent data after concurrent operations
+        assertState("""
+                Argentina 3 - Australia 0
+                Germany 1 - France 1
+                """, scoreboard.getSummary());
+    }
+
+    @Test
+    @DisplayName("Test concurrent match start with the same teams")
+    void testConcurrentDuplicateStartMatch() {
+        // GIVEN a match between Spain and Brazil
+        scoreboard.startMatch("Spain", "Brazil");
+
+        // WHEN attempting to start the same match concurrently
+        executeConcurrently(IntStream.range(1, 100)
+                .boxed()
+                .map(it -> (Runnable) () -> scoreboard.startMatch("Spain", "Brazil")
+                ).toList()
+        );
+        executeConcurrently(IntStream.range(1, 100)
+                .boxed()
+                .map(it -> (Runnable) () -> scoreboard.startMatch("Brazil", "Spain")
+                ).toList()
+        );
+
+        // THEN only one match between Spain and Brazil should exist
+        assertState("""
+                Spain 0 - Brazil 0
+                """, scoreboard.getSummary());
+    }
+
+    @Test
+    @DisplayName("Test concurrent score updates")
+    void testConcurrentScoreUpdates() {
+        // GIVEN a match started between Argentina and Australia, Spain and Brazil
+        scoreboard.startMatch("Argentina", "Australia");
+        scoreboard.startMatch("Spain", "Brazil");
+        scoreboard.updateScore("Spain", 4, "Brazil", 2);
+
+        // WHEN updating the score of Argentina and Australia concurrently
+
+        executeConcurrently(IntStream.range(1, 100)
+                .boxed()
+                .map(it -> (Runnable) () -> scoreboard.updateScore("Argentina", it, "Australia", it + 1))
+                .toList());
+
+        scoreboard.updateScore("Argentina", 5, "Australia", 0);
+
+        // THEN the final score should be the one from the last update, Spain and Brazil not changed
+        assertState("""
+                Spain 4 - Brazil 2
+                Argentina 5 - Australia 0
+                """, scoreboard.getSummary());
+    }
+
+    @SneakyThrows
+    private void executeConcurrently(List<Runnable> tasks) {
+        val futures = tasks.stream()
+                .map(executorService::submit)
+                .toList();
+        for (Future<?> future : futures) {
+            try {
+                future.get();
+            } catch (Exception ignored) {
+                // Ignoring exceptions
+            }
+        }
+    }
 
     private void assertState(String expectedState, Summary summary) {
         assertEquals(expectedState, renderSummaryState(summary));
