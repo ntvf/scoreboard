@@ -1,5 +1,7 @@
 package com.ntvf.scoreboard;
 
+import java.util.List;
+
 public class InMemoryScoreboard implements Scoreboard {
 
     @Override
@@ -19,8 +21,12 @@ public class InMemoryScoreboard implements Scoreboard {
 
     @Override
     public Summary getSummary() {
-        notImplemented();
-        return null;
+        return new Summary() {
+            @Override
+            public List<Match> getMatches() {
+                return List.of();
+            }
+        };
     }
 
     private void notImplemented() {

@@ -2,6 +2,8 @@ package com.ntvf.scoreboard;
 
 import java.util.List;
 
+import static java.util.Optional.ofNullable;
+
 public interface Scoreboard {
 
     void startMatch(String homeTeam, String awayTeam);
@@ -14,6 +16,12 @@ public interface Scoreboard {
 
     interface Summary {
         List<Match> getMatches();
+
+        default boolean isEmpty() {
+            return ofNullable(getMatches())
+                    .map(List::isEmpty)
+                    .orElse(Boolean.TRUE);
+        }
     }
 
     interface Match {
