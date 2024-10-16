@@ -1,7 +1,7 @@
 # Live Football World Cup Scoreboard Library
 
 ## Description
-This is a simple in-memory library to manage live football scores for ongoing matches. It provides functionality to:
+This is a simple in-memory, thread-safe library to manage live football scores for ongoing matches. It provides functionality to:
 1. Start a new match.
 2. Update the score of an ongoing match.
 3. Finish a match, removing it from the scoreboard.
@@ -39,5 +39,23 @@ This is a simple in-memory library to manage live football scores for ongoing ma
     - **Edge Case:** Attempting to start a match with invalid (empty or null) team names will result in an error.
 
 7. **Empty Scoreboard:**
-    - If no matches are currently in progress, the summary will return an empty list.
+    - If no matches are currently in progress, the summary will return an empty list inside Summary object.
 
+## Usage Example
+```java
+// Create the scoreboard instance
+Scoreboard scoreboard = new InMemoryScoreboard();
+
+// Start a few matches
+scoreboard.startMatch("Mexico", "Canada");
+scoreboard.startMatch("Spain", "Brazil");
+
+// Update scores
+scoreboard.updateScore("Mexico", 0, "Canada", 5);
+scoreboard.updateScore("Spain", 10, "Brazil", 2);
+
+// Get summary
+Scoreboard.Summary summary = scoreboard.getSummary();
+
+// Finish a match
+scoreboard.finishMatch("Mexico", "Canada");
